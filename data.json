@@ -1,0 +1,29 @@
+{
+  "customers": [
+    {
+      "id": 1,
+      "name": "Maulana",
+      "coupons": 5,
+      "gender": "male",
+      "redeemed": 0,
+      "history": []
+    },
+    {
+      "id": 2,
+      "name": "Rizky",
+      "coupons": 8,
+      "gender": "male",
+      "redeemed": 0,
+      "history": []
+    },
+    {
+      "id": 3,
+      "name": "Alya",
+      "coupons": 4,
+      "gender": "female",
+      "redeemed": 0,
+      "history": []
+    }
+  ],
+  "logs": []
+}
