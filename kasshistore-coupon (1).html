@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasshistore — Digital Coupon 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cyan:#00f5ff; --magenta:#ff3de8; --purple:#7b2fff;
+  --bg:#04060f; --card:rgba(255,255,255,0.04);
+  --border:rgba(255,255,255,0.1); --text:#e8eaf6;
+  --muted:rgba(255,255,255,0.5); --green:#00e676; --radius:28px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden}
+#bgCanvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+.grid-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(0,245,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.04) 1px,transparent 1px);
+  background-size:60px 60px;mask-image:radial-gradient(ellipse at center,black 20%,transparent 80%)}
+.scanline{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px)}
+
+.wrapper{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:32px 20px 80px}
+.banner{text-align:center;padding:14px 20px;
+  background:linear-gradient(90deg,rgba(0,245,255,0.08),rgba(255,61,232,0.08));
+  border:1px solid rgba(0,245,255,0.18);border-radius:14px;
+  font-family:'Orbitron',monospace;font-size:12px;letter-spacing:4px;color:var(--cyan);
+  margin-bottom:28px;animation:bannerPulse 3s ease-in-out infinite}
+@keyframes bannerPulse{0%,100%{border-color:rgba(0,245,255,0.18)}
+  50%{border-color:rgba(0,245,255,0.5);box-shadow:0 0 18px rgba(0,245,255,0.12)}}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:36px;backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  position:relative;overflow:hidden;animation:slideUp 0.7s cubic-bezier(0.22,1,0.36,1) both;margin-bottom:20px}
+.card::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--magenta),transparent);
+  border-radius:var(--radius) var(--radius) 0 0}
+@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+
+.logo{font-family:'Orbitron',monospace;font-size:42px;font-weight:900;
+  background:linear-gradient(120deg,var(--cyan) 0%,var(--magenta) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  line-height:1.1;filter:drop-shadow(0 0 28px rgba(0,245,255,0.3))}
+.year-badge{display:inline-block;padding:4px 14px;
+  background:linear-gradient(90deg,var(--cyan),var(--magenta));border-radius:99px;
+  font-size:11px;font-weight:700;color:#04060f;font-family:'Orbitron',monospace;
+  margin-bottom:10px;letter-spacing:2px}
+.subtitle{color:var(--muted);font-size:14px;line-height:1.8;margin-top:8px}
+
+.profile-wrap{display:flex;align-items:center;gap:20px;margin:24px 0;padding:20px;
+  background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:20px}
+.avatar-ring{position:relative;width:84px;height:84px;flex-shrink:0}
+.avatar-ring::before{content:'';position:absolute;inset:-3px;border-radius:50%;
+  background:conic-gradient(var(--cyan),var(--magenta),var(--purple),var(--cyan));
+  animation:spin 4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.avatar-ring img{position:relative;z-index:1;width:100%;height:100%;border-radius:50%;
+  object-fit:cover;background:#0d1124;border:3px solid var(--bg);
+  animation:float 5s ease-in-out infinite;display:block}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.welcome-name{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;
+  background:linear-gradient(90deg,var(--cyan),var(--magenta));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.welcome-sub{color:var(--muted);font-size:12px;margin-top:4px}
+
+.promo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.promo-item{padding:16px;border-radius:16px;background:rgba(255,255,255,0.03);
+  border:1px solid var(--border);transition:transform 0.2s,border-color 0.2s}
+.promo-item:hover{transform:translateY(-2px);border-color:rgba(255,255,255,0.2)}
+.promo-icon{font-size:24px;margin-bottom:8px}
+.promo-label{font-size:11px;color:var(--muted);margin-bottom:3px}
+.promo-value{font-family:'Orbitron',monospace;font-size:16px;font-weight:700}
+.promo-item:nth-child(1) .promo-value{color:var(--cyan)}
+.promo-item:nth-child(2) .promo-value{color:#c084fc}
+.promo-item:nth-child(3) .promo-value{color:var(--magenta);font-size:13px}
+
+.section-title{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;
+  color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.input-wrap{position:relative;margin-bottom:10px}
+.input-wrap input{width:100%;padding:14px 18px;background:rgba(255,255,255,0.06);
+  border:1px solid var(--border);border-radius:14px;color:var(--text);font-size:14px;
+  font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+.input-wrap input:focus{border-color:rgba(0,245,255,0.5);box-shadow:0 0 0 3px rgba(0,245,255,0.08)}
+.input-wrap input::placeholder{color:var(--muted)}
+
+.btn{width:100%;padding:14px;border:none;border-radius:14px;font-size:14px;font-weight:700;
+  font-family:'Orbitron',monospace;cursor:pointer;letter-spacing:1px;position:relative;
+  overflow:hidden;transition:transform 0.15s,box-shadow 0.15s}
+.btn-primary{background:linear-gradient(90deg,var(--cyan),var(--magenta));color:#04060f}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,245,255,0.28)}
+.btn-primary:active{transform:scale(0.98)}
+.btn-primary::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+  transform:translateX(-100%);transition:transform 0.5s}
+.btn-primary:hover::after{transform:translateX(100%)}
+.btn-sm{padding:7px 14px;font-size:11px;width:auto;letter-spacing:0.5px}
+.btn-ghost{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);font-size:12px}
+.btn-ghost:hover{background:rgba(255,255,255,0.1);color:var(--text);transform:none;box-shadow:none}
+
+.gender-row{display:flex;gap:10px;margin-bottom:10px}
+.gender-btn{flex:1;padding:9px;border:1px solid var(--border);border-radius:10px;
+  background:rgba(255,255,255,0.04);color:var(--muted);font-size:13px;
+  font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;
+  display:flex;align-items:center;justify-content:center;gap:5px}
+.gender-btn.active{background:rgba(0,245,255,0.1);border-color:var(--cyan);color:var(--cyan)}
+
+.result-box{margin-top:18px;padding:22px;background:rgba(255,255,255,0.04);
+  border:1px solid var(--border);border-radius:20px;display:none;animation:slideUp 0.4s ease both}
+.result-box.show{display:block}
+.result-row{display:flex;align-items:center;gap:10px;padding:9px 0;
+  border-bottom:1px solid rgba(255,255,255,0.06);font-size:14px}
+.result-row:last-child{border-bottom:none}
+.result-label{color:var(--muted);min-width:120px;font-size:13px}
+.result-value{font-weight:600}
+
+.coupon-visual{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0}
+.coupon-dot{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-size:16px;border:1px solid var(--border);
+  background:rgba(255,255,255,0.03);transition:all 0.3s}
+.coupon-dot.filled{background:linear-gradient(135deg,var(--cyan),var(--purple));
+  border-color:var(--cyan);box-shadow:0 0 10px rgba(0,245,255,0.3);animation:dotPop 0.4s ease}
+@keyframes dotPop{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+
+.reward-ready{padding:16px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(0,230,118,0.1),rgba(0,245,255,0.08));
+  border:1px solid rgba(0,230,118,0.25);margin-top:12px;text-align:center}
+.reward-title{font-family:'Orbitron',monospace;font-size:12px;color:var(--green);
+  letter-spacing:2px;margin-bottom:8px}
+.wa-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;
+  background:#25D366;color:white;border-radius:12px;text-decoration:none;font-weight:700;
+  font-family:'Orbitron',monospace;font-size:11px;letter-spacing:1px;margin-top:12px;
+  transition:transform 0.2s,box-shadow 0.2s}
+.wa-btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(37,211,102,0.4)}
+.wa-btn svg{width:20px;height:20px;fill:white;flex-shrink:0}
+
+.riwayat-item{padding:10px 14px;background:rgba(255,255,255,0.02);
+  border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-top:7px;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px}
+.ri-left{color:var(--muted);font-size:11px}
+.ri-badge{padding:3px 10px;border-radius:99px;font-size:10px;font-weight:700;
+  font-family:'Orbitron',monospace;background:rgba(0,230,118,0.1);
+  border:1px solid rgba(0,230,118,0.3);color:var(--green)}
+
+.alert{padding:11px 15px;border-radius:11px;font-size:13px;margin-top:10px;display:none;animation:slideUp 0.3s ease}
+.alert.success{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);color:var(--green)}
+.alert.error{background:rgba(255,61,232,0.08);border:1px solid rgba(255,61,232,0.3);color:var(--magenta)}
+.alert.show{display:block}
+
+/* ══════ ADMIN — subtle floating trigger ══════ */
+.admin-trigger{position:fixed;bottom:22px;right:22px;z-index:100;
+  width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.07);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  transition:all 0.25s;opacity:0.28;user-select:none}
+.admin-trigger:hover{opacity:0.65;background:rgba(255,255,255,0.08)}
+
+/* Overlay */
+.admin-overlay{position:fixed;inset:0;z-index:200;display:none;align-items:flex-end;
+  justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);padding:16px}
+.admin-overlay.open{display:flex}
+.admin-drawer{background:#070a18;border:1px solid rgba(123,47,255,0.28);
+  border-radius:22px 22px 18px 18px;width:100%;max-width:700px;max-height:90vh;
+  overflow-y:auto;padding:26px;animation:drawerUp 0.35s cubic-bezier(0.22,1,0.36,1);position:relative;
+  scrollbar-width:thin;scrollbar-color:rgba(123,47,255,0.3) transparent}
+.admin-drawer::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:2px;
+  background:linear-gradient(90deg,transparent,var(--purple),var(--magenta),transparent);
+  border-radius:22px 22px 0 0}
+@keyframes drawerUp{from{opacity:0;transform:translateY(50px)}to{opacity:1;transform:translateY(0)}}
+.drawer-handle{width:36px;height:3px;background:rgba(255,255,255,0.12);border-radius:2px;margin:0 auto 18px}
+.close-btn{position:absolute;top:18px;right:18px;width:30px;height:30px;border-radius:50%;
+  background:rgba(255,255,255,0.05);border:1px solid var(--border);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px;
+  transition:all 0.2s;line-height:1}
+.close-btn:hover{background:rgba(255,255,255,0.1);color:var(--text)}
+
+.admin-logo{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;
+  background:linear-gradient(90deg,var(--purple),var(--magenta));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+
+/* Admin tabs */
+.admin-tabs{display:flex;gap:7px;margin-bottom:16px;flex-wrap:wrap}
+.tab-btn{padding:7px 14px;border:1px solid var(--border);border-radius:99px;font-size:11px;
+  font-family:'Orbitron',monospace;letter-spacing:0.5px;cursor:pointer;background:transparent;
+  color:var(--muted);transition:all 0.2s}
+.tab-btn.active{background:rgba(123,47,255,0.18);border-color:var(--purple);color:#c084fc}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+.form-section{padding:16px;background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);border-radius:14px;margin-bottom:12px}
+.form-section h3{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;
+  color:var(--cyan);margin-bottom:12px}
+
+/* Admin inputs */
+.admin-drawer .input-wrap input{padding:12px 14px;font-size:13px}
+
+/* User list */
+.user-list{max-height:320px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,245,255,0.2) transparent}
+.user-card{display:flex;align-items:center;gap:11px;padding:11px 13px;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+  border-radius:11px;margin-bottom:7px;transition:border-color 0.2s}
+.user-card:hover{border-color:rgba(0,245,255,0.18)}
+.user-card img{width:36px;height:36px;border-radius:50%;background:#111;border:2px solid rgba(0,245,255,0.15)}
+.user-card-info{flex:1;min-width:0}
+.user-card-name{font-weight:600;font-size:13px}
+.user-card-meta{font-size:11px;color:var(--muted);margin-top:1px}
+.coupon-pill{padding:4px 10px;border-radius:99px;font-family:'Orbitron',monospace;
+  font-size:10px;white-space:nowrap;border:1px solid;margin-left:auto}
+.cp-normal{background:rgba(0,245,255,0.07);border-color:rgba(0,245,255,0.2);color:var(--cyan)}
+.cp-ready{background:rgba(0,230,118,0.1);border-color:rgba(0,230,118,0.3);color:var(--green)}
+
+/* Redeem cards */
+.redeem-card{padding:14px;background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);border-radius:13px;margin-bottom:10px}
+.redeem-top{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.redeem-top img{width:36px;height:36px;border-radius:50%;background:#111;border:2px solid rgba(255,61,232,0.2)}
+.rname{font-weight:600;font-size:13px}
+.rmeta{font-size:11px;color:var(--muted);margin-top:2px}
+.redeem-bottom{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.redeem-bottom select{flex:1;min-width:160px;padding:9px 12px;background:rgba(255,255,255,0.06);
+  border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:12px;
+  font-family:'DM Sans',sans-serif;outline:none;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center}
+.redeem-bottom select:focus{border-color:rgba(0,245,255,0.4);box-shadow:0 0 0 2px rgba(0,245,255,0.08)}
+.redeem-bottom select option{background:#0d0f1f}
+.btn-confirm{padding:8px 16px;border:none;border-radius:99px;font-size:11px;font-weight:700;
+  font-family:'Orbitron',monospace;cursor:pointer;
+  background:linear-gradient(90deg,var(--green),#00c853);color:#04060f;
+  transition:transform 0.15s,box-shadow 0.15s;letter-spacing:0.5px;white-space:nowrap}
+.btn-confirm:hover{transform:scale(1.04);box-shadow:0 4px 14px rgba(0,230,118,0.35)}
+
+/* Log */
+.log-item{padding:10px 13px;border-radius:9px;margin-bottom:7px;font-size:12px;
+  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);
+  display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.log-time{color:var(--muted);font-size:10px;white-space:nowrap}
+.log-badge{padding:3px 9px;border-radius:99px;font-size:10px;font-weight:700;
+  font-family:'Orbitron',monospace;background:rgba(0,230,118,0.1);
+  border:1px solid rgba(0,230,118,0.3);color:var(--green);white-space:nowrap}
+
+.footer-bar{text-align:center;color:rgba(255,255,255,0.2);font-size:10px;
+  font-family:'Orbitron',monospace;letter-spacing:3px;padding-top:8px}
+
+@media(max-width:640px){
+  .promo-grid{grid-template-columns:1fr 1fr}
+  .logo{font-size:30px}
+  .card{padding:22px}
+  .admin-drawer{border-radius:18px 18px 0 0;padding:20px}
+  .promo-item:nth-child(3){grid-column:1 / -1}
+}
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+<div class="grid-overlay"></div>
+<div class="scanline"></div>
+
+<div class="wrapper">
+  <div class="banner">⚡ KASSHISTORE DIGITAL COUPON SYSTEM 2026 — KUMPULKAN &amp; TUKARKAN HADIAHMU ⚡</div>
+
+  <!-- CUSTOMER CARD -->
+  <div class="card">
+    <div class="year-badge">SEASON 2026</div>
+    <div class="logo">Kasshistore</div>
+    <p class="subtitle">Kumpulkan kupon dari setiap pembelian, tukar setiap kelipatan 8 kupon!</p>
+
+    <div class="profile-wrap">
+      <div class="avatar-ring">
+        <img id="profileImage" src="https://api.dicebear.com/7.x/adventurer/svg?seed=Guest&backgroundColor=0d1124" alt="Avatar">
+      </div>
+      <div>
+        <div class="welcome-name" id="welcomeText">Selamat datang!</div>
+        <div class="welcome-sub">Masukkan username untuk cek kuponu</div>
+      </div>
+    </div>
+
+    <div class="promo-grid">
+      <div class="promo-item">
+        <div class="promo-icon">🛍️</div>
+        <div class="promo-label">Per pembelian</div>
+        <div class="promo-value">1 Kupon</div>
+      </div>
+      <div class="promo-item">
+        <div class="promo-icon">🎯</div>
+        <div class="promo-label">Tukar mulai dari</div>
+        <div class="promo-value">8 Kupon</div>
+      </div>
+      <div class="promo-item">
+        <div class="promo-icon">💸</div>
+        <div class="promo-label">Per 8 kupon dapat</div>
+        <div class="promo-value">Rp 6.000</div>
+      </div>
+    </div>
+
+    <div class="section-title">CEK KUPON SAYA</div>
+    <div class="input-wrap">
+      <input type="text" id="searchName" placeholder="Masukkan username kamu..." autocomplete="off">
+    </div>
+    <button class="btn btn-primary" onclick="cekKupon()">✦ CEK KUPON ✦</button>
+    <div id="alertCustomer" class="alert error"></div>
+
+    <div class="result-box" id="hasilBox">
+      <div class="section-title">HASIL PENCARIAN</div>
+      <div class="result-row">
+        <span class="result-label">👤 Username</span>
+        <span class="result-value" id="hasilNama">—</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">🎟️ Kupon aktif</span>
+        <span class="result-value" id="hasilKupon">—</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">✅ Total ditukar</span>
+        <span class="result-value" id="hasilTukar">—</span>
+      </div>
+      <div id="couponDots" class="coupon-visual"></div>
+      <div id="hasilSisa"></div>
+      <div id="riwayatWrap" style="display:none;margin-top:14px">
+        <div class="section-title" style="margin-bottom:8px">RIWAYAT PENUKARAN</div>
+        <div id="riwayatList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bar">© 2026 KASSHISTORE · DIGITAL COUPON SYSTEM · ALL RIGHTS RESERVED</div>
+</div>
+
+<!-- Admin trigger: tiny barely-visible lock at bottom-right -->
+<div class="admin-trigger" id="adminTrigger" onclick="openAdmin()" title="">🔒</div>
+
+<!-- ADMIN DRAWER OVERLAY -->
+<div class="admin-overlay" id="adminOverlay" onclick="overlayBgClick(event)">
+  <div class="admin-drawer" id="adminDrawer">
+    <div class="drawer-handle"></div>
+    <button class="close-btn" onclick="closeAdmin()">✕</button>
+
+    <!-- Login -->
+    <div id="adminLoginSection">
+      <div class="admin-logo">Admin Panel</div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:16px">Akses terbatas — masukkan password.</p>
+      <div class="input-wrap"><input type="password" id="adminPassword" placeholder="Password..." autocomplete="off"></div>
+      <button class="btn btn-primary" onclick="loginAdmin()">MASUK</button>
+      <div id="alertAdmin" class="alert error"></div>
+    </div>
+
+    <!-- Content setelah login -->
+    <div id="adminContent" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div class="admin-logo">Admin Panel</div>
+        <button class="btn btn-ghost btn-sm" onclick="logoutAdmin()">KELUAR</button>
+      </div>
+
+      <div class="admin-tabs">
+        <button class="tab-btn active" onclick="switchTab('customers')">👥 Customer</button>
+        <button class="tab-btn" onclick="switchTab('penukaran')">🎁 Penukaran</button>
+        <button class="tab-btn" onclick="switchTab('tambah')">➕ Tambah</button>
+        <button class="tab-btn" onclick="switchTab('kupon')">🎟️ Beri Kupon</button>
+        <button class="tab-btn" onclick="switchTab('log')">📋 Log</button>
+      </div>
+
+      <!-- TAB: Customer -->
+      <div class="tab-pane active" id="tab-customers">
+        <div class="form-section">
+          <h3>DAFTAR CUSTOMER</h3>
+          <div class="user-list" id="listUser"></div>
+        </div>
+      </div>
+
+      <!-- TAB: Penukaran -->
+      <div class="tab-pane" id="tab-penukaran">
+        <div class="form-section">
+          <h3>KONFIRMASI PENUKARAN</h3>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.7">
+            Pilih customer dan jumlah kelipatan 8 kupon yang ingin ditukar. Setelah dikonfirmasi, kupon dikurangi otomatis dan tercatat di log.
+          </p>
+          <div id="redeemList"></div>
+          <p id="noRedeem" style="font-size:12px;color:var(--muted);text-align:center;padding:18px 0;display:none">
+            Belum ada customer dengan kupon ≥ 8.
+          </p>
+        </div>
+      </div>
+
+      <!-- TAB: Tambah Customer -->
+      <div class="tab-pane" id="tab-tambah">
+        <div class="form-section">
+          <h3>TAMBAH CUSTOMER BARU</h3>
+          <div class="input-wrap"><input type="text" id="newName" placeholder="Username..." autocomplete="off"></div>
+          <div class="input-wrap"><input type="number" id="newCoupons" placeholder="Kupon awal (opsional)..." min="0" max="999"></div>
+          <div style="margin-bottom:10px">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:7px">Gender avatar:</div>
+            <div class="gender-row">
+              <button class="gender-btn active" id="genderMale" onclick="setGender('male')">♂ Laki-laki</button>
+              <button class="gender-btn" id="genderFemale" onclick="setGender('female')">♀ Perempuan</button>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="tambahData()">TAMBAH</button>
+          <div id="alertTambah" class="alert success"></div>
+        </div>
+      </div>
+
+      <!-- TAB: Beri Kupon -->
+      <div class="tab-pane" id="tab-kupon">
+        <div class="form-section">
+          <h3>TAMBAH KUPON KE CUSTOMER</h3>
+          <div class="input-wrap">
+            <input type="text" id="addCouponName" placeholder="Username customer..." autocomplete="off" list="userSuggestions">
+            <datalist id="userSuggestions"></datalist>
+          </div>
+          <div class="input-wrap"><input type="number" id="addCouponAmount" placeholder="Jumlah kupon..." min="1" max="99"></div>
+          <button class="btn btn-primary" onclick="tambahKupon()">+ TAMBAHKAN</button>
+          <div id="alertKupon" class="alert success"></div>
+        </div>
+      </div>
+
+      <!-- TAB: Log -->
+      <div class="tab-pane" id="tab-log">
+        <div class="form-section">
+          <h3>LOG PENUKARAN</h3>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+            <button class="btn btn-ghost btn-sm" onclick="hapusLog()">Hapus semua</button>
+          </div>
+          <div id="globalLog" style="max-height:280px;overflow-y:auto;scrollbar-width:thin"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══ DATA ══ */
+const SK='kasshistore_v3', LK='kasshistore_log_v1';
+const ADMIN_PASS='kasshi123', TARGET=8;
+
+function loadUsers(){
+  try{ const r=localStorage.getItem(SK); if(r) return JSON.parse(r); }catch(e){}
+  return [
+    {name:"Maulana",coupons:5,gender:"male",  redeemed:0,history:[]},
+    {name:"Rizky",  coupons:8,gender:"male",  redeemed:0,history:[]},
+    {name:"Alya",   coupons:4,gender:"female",redeemed:0,history:[]}
+  ];
+}
+function saveUsers(a){try{localStorage.setItem(SK,JSON.stringify(a))}catch(e){}}
+function loadLog(){try{const r=localStorage.getItem(LK);if(r) return JSON.parse(r)}catch(e){}return[]}
+function saveLog(a){try{localStorage.setItem(LK,JSON.stringify(a))}catch(e){}}
+
+let users=loadUsers(), logs=loadLog(), selGender='male';
+
+/* ══ CANVAS ══ */
+const canvas=document.getElementById('bgCanvas'), ctx=canvas.getContext('2d');
+function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
+resize(); window.addEventListener('resize',resize);
+const C=['#00f5ff','#ff3de8','#7b2fff','#00e676','#4de1ff','#c084fc'];
+
+class Bubble{
+  constructor(init){this.reset(init)}
+  reset(init){
+    this.x=Math.random()*canvas.width;
+    this.y=init?Math.random()*canvas.height:canvas.height+60;
+    this.r=6+Math.random()*28; this.vy=-(0.3+Math.random()*0.9);
+    this.vx=(Math.random()-0.5)*0.45; this.col=C[Math.floor(Math.random()*C.length)];
+    this.a=init?Math.random()*0.15:0; this.ta=0.06+Math.random()*0.14;
+    this.w=Math.random()*Math.PI*2; this.ws=0.01+Math.random()*0.02;
+  }
+  update(){
+    this.w+=this.ws; this.x+=this.vx+Math.sin(this.w)*0.4;
+    this.y+=this.vy; this.a=Math.min(this.a+0.0025,this.ta);
+    if(this.y<-this.r*2) this.reset(false);
+  }
+  draw(){
+    ctx.save(); ctx.globalAlpha=this.a;
+    const g=ctx.createRadialGradient(this.x-this.r*.3,this.y-this.r*.3,this.r*.1,this.x,this.y,this.r);
+    g.addColorStop(0,'rgba(255,255,255,0.5)');g.addColorStop(0.4,this.col+'40');g.addColorStop(1,this.col+'00');
+    ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+    ctx.strokeStyle=this.col+'65';ctx.lineWidth=0.8;ctx.stroke();
+    ctx.beginPath();ctx.arc(this.x-this.r*.3,this.y-this.r*.32,this.r*.2,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fill();
+    ctx.restore();
+  }
+}
+class Particle{
+  constructor(init){this.reset(init)}
+  reset(init){
+    this.x=Math.random()*canvas.width;this.y=init?Math.random()*canvas.height:canvas.height+5;
+    this.r=0.7+Math.random()*1.6;this.vy=-(0.5+Math.random()*1.8);
+    this.vx=(Math.random()-0.5)*0.65;this.a=0.2+Math.random()*0.5;
+    this.col=C[Math.floor(Math.random()*C.length)];
+  }
+  update(){this.x+=this.vx;this.y+=this.vy;this.a-=0.002;if(this.y<0||this.a<=0)this.reset(false)}
+  draw(){ctx.save();ctx.globalAlpha=this.a;ctx.fillStyle=this.col;ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fill();ctx.restore()}
+}
+const bubbles=Array.from({length:42},(_,i)=>new Bubble(true));
+const particles=Array.from({length:75},(_,i)=>new Particle(true));
+(function loop(){ctx.clearRect(0,0,canvas.width,canvas.height);bubbles.forEach(b=>{b.update();b.draw()});particles.forEach(p=>{p.update();p.draw()});requestAnimationFrame(loop)})();
+
+/* ══ HELPERS ══ */
+function showAlert(id,msg,type='error'){
+  const el=document.getElementById(id);
+  el.textContent=msg;el.className=`alert ${type} show`;
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),4000);
+}
+function avatarUrl(name,gender){
+  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name)}&gender=${gender}&backgroundColor=${gender==='female'?'ffd5dc,ffb3c6':'b6e3f4,c0aede'}`;
+}
+function nowStr(){
+  const d=new Date();
+  return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+
+/* ══ CEK KUPON ══ */
+function buildDots(coupons){
+  const w=document.getElementById('couponDots');w.innerHTML='';
+  for(let i=0;i<TARGET;i++){
+    const d=document.createElement('div');
+    d.className='coupon-dot'+(i<coupons?' filled':'');
+    d.textContent=i<coupons?'🎟️':'○';
+    d.style.animationDelay=(i*.05)+'s';
+    w.appendChild(d);
+  }
+}
+
+function cekKupon(){
+  const raw=document.getElementById('searchName').value.trim();
+  if(!raw){showAlert('alertCustomer','⚠️ Masukkan username dulu!');return}
+  const user=users.find(u=>u.name.toLowerCase()===raw.toLowerCase());
+  if(!user){
+    showAlert('alertCustomer',`❌ Username "${raw}" tidak ditemukan.`);
+    document.getElementById('hasilBox').classList.remove('show');return;
+  }
+  document.getElementById('profileImage').src=avatarUrl(user.name,user.gender||'male');
+  document.getElementById('welcomeText').textContent=`Halo, ${user.name}!`;
+  document.getElementById('hasilNama').textContent=user.name;
+  document.getElementById('hasilKupon').textContent=`${user.coupons} kupon`;
+  document.getElementById('hasilTukar').textContent=`${user.redeemed||0} kupon (Rp ${((user.redeemed||0)/TARGET*6000).toLocaleString('id-ID')})`;
+  buildDots(user.coupons);
+
+  const sisaEl=document.getElementById('hasilSisa');
+  const maxCycles=Math.floor(user.coupons/TARGET);
+  if(maxCycles>=1){
+    const totalRp=(maxCycles*6000).toLocaleString('id-ID');
+    sisaEl.innerHTML=`
+      <div class="reward-ready">
+        <div class="reward-title">🎉 BISA TUKAR ${maxCycles>1?maxCycles+' PAKET ('+maxCycles*TARGET+' KUPON)':'1 PAKET (8 KUPON)'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
+          Nilai hadiah: <b style="color:var(--green)">Rp ${totalRp}</b>. Hubungi admin untuk klaim!
+        </div>
+        <a href="https://wa.me/qr/SIHJCMFJ3OGVM1" target="_blank" class="wa-btn">
+          <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.136.558 4.14 1.535 5.875L.057 23.925a.5.5 0 00.612.612l6.05-1.478A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.887 0-3.66-.488-5.203-1.348l-.372-.214-3.857.941.957-3.857-.226-.381A9.96 9.96 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+          CHAT ADMIN KASSHISTORE
+        </a>
+      </div>`;
+  } else {
+    const sisa=TARGET-user.coupons;
+    sisaEl.innerHTML=`
+      <div style="margin-top:12px;padding:12px 15px;background:rgba(255,255,255,0.03);
+        border:1px solid var(--border);border-radius:11px;font-size:13px;color:var(--muted)">
+        🎁 Butuh <b style="color:var(--cyan)">${sisa} kupon lagi</b> untuk penukaran pertama (8 kupon = Rp 6.000)
+      </div>`;
+  }
+
+  // Riwayat
+  const hist=user.history||[];
+  const rWrap=document.getElementById('riwayatWrap');
+  if(hist.length){
+    rWrap.style.display='block';
+    document.getElementById('riwayatList').innerHTML=hist.slice().reverse().map(h=>
+      `<div class="riwayat-item">
+        <div class="ri-left">📅 ${h.date}</div>
+        <div style="flex:1">${h.qty} kupon → <b style="color:var(--green)">Rp ${h.rp.toLocaleString('id-ID')}</b></div>
+        <div class="ri-badge">✓ LUNAS</div>
+      </div>`).join('');
+  } else rWrap.style.display='none';
+
+  document.getElementById('hasilBox').classList.add('show');
+  document.getElementById('alertCustomer').classList.remove('show');
+}
+document.getElementById('searchName').addEventListener('keydown',e=>{if(e.key==='Enter')cekKupon()});
+
+/* ══ ADMIN OPEN/CLOSE ══ */
+function openAdmin(){document.getElementById('adminOverlay').classList.add('open');setTimeout(()=>document.getElementById('adminPassword').focus(),200)}
+function closeAdmin(){document.getElementById('adminOverlay').classList.remove('open')}
+function overlayBgClick(e){if(e.target===document.getElementById('adminOverlay'))closeAdmin()}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAdmin()});
+document.getElementById('adminPassword').addEventListener('keydown',e=>{if(e.key==='Enter')loginAdmin()});
+
+function loginAdmin(){
+  if(document.getElementById('adminPassword').value===ADMIN_PASS){
+    document.getElementById('adminLoginSection').style.display='none';
+    document.getElementById('adminContent').style.display='block';
+    document.getElementById('adminPassword').value='';
+    refreshAll();
+  } else {
+    showAlert('alertAdmin','❌ Password salah!','error');
+    document.getElementById('adminPassword').value='';
+  }
+}
+function logoutAdmin(){
+  document.getElementById('adminLoginSection').style.display='block';
+  document.getElementById('adminContent').style.display='none';
+}
+
+/* ══ TABS ══ */
+const TABS=['customers','penukaran','tambah','kupon','log'];
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TABS[i]===name));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='customers')tampilkanUser();
+  if(name==='penukaran')tampilkanPenukaran();
+  if(name==='log')tampilkanLog();
+  if(name==='kupon')updateSuggestions();
+}
+function refreshAll(){tampilkanUser();tampilkanPenukaran();tampilkanLog();updateSuggestions()}
+
+/* ══ GENDER ══ */
+function setGender(g){
+  selGender=g;
+  document.getElementById('genderMale').classList.toggle('active',g==='male');
+  document.getElementById('genderFemale').classList.toggle('active',g==='female');
+}
+
+/* ══ TAMBAH CUSTOMER ══ */
+function tambahData(){
+  const nama=document.getElementById('newName').value.trim();
+  const kRaw=document.getElementById('newCoupons').value;
+  const kupon=kRaw===''?0:parseInt(kRaw);
+  if(!nama){showAlert('alertTambah','⚠️ Username kosong!','error');return}
+  if(isNaN(kupon)||kupon<0||kupon>999){showAlert('alertTambah','⚠️ Kupon 0–999!','error');return}
+  if(users.find(u=>u.name.toLowerCase()===nama.toLowerCase())){showAlert('alertTambah',`⚠️ "${nama}" sudah ada!`,'error');return}
+  users.push({name:nama,coupons:kupon,gender:selGender,redeemed:0,history:[]});
+  saveUsers(users);refreshAll();
+  showAlert('alertTambah',`✅ "${nama}" berhasil ditambahkan!`,'success');
+  document.getElementById('newName').value='';document.getElementById('newCoupons').value='';
+}
+
+/* ══ TAMBAH KUPON ══ */
+function tambahKupon(){
+  const nama=document.getElementById('addCouponName').value.trim();
+  const jumlah=parseInt(document.getElementById('addCouponAmount').value);
+  if(!nama){showAlert('alertKupon','⚠️ Masukkan username!','error');return}
+  if(isNaN(jumlah)||jumlah<=0||jumlah>99){showAlert('alertKupon','⚠️ Jumlah 1–99!','error');return}
+  const user=users.find(u=>u.name.toLowerCase()===nama.toLowerCase());
+  if(!user){showAlert('alertKupon',`❌ "${nama}" tidak ditemukan!`,'error');return}
+  user.coupons+=jumlah;saveUsers(users);refreshAll();
+  showAlert('alertKupon',`✅ +${jumlah} ke "${user.name}" → total ${user.coupons}.`,'success');
+  document.getElementById('addCouponName').value='';document.getElementById('addCouponAmount').value='';
+}
+function updateSuggestions(){
+  document.getElementById('userSuggestions').innerHTML=users.map(u=>`<option value="${u.name}">`).join('');
+}
+
+/* ══ TAMPIL USER LIST ══ */
+function tampilkanUser(){
+  const list=document.getElementById('listUser');
+  if(!users.length){list.innerHTML='<p style="color:var(--muted);font-size:12px;text-align:center;padding:16px 0">Belum ada customer.</p>';return}
+  list.innerHTML=[...users].sort((a,b)=>b.coupons-a.coupons).map(u=>`
+    <div class="user-card">
+      <img src="${avatarUrl(u.name,u.gender||'male')}" alt="" loading="lazy">
+      <div class="user-card-info">
+        <div class="user-card-name">${u.name}</div>
+        <div class="user-card-meta">${u.gender==='female'?'♀':'♂'} · Ditukar: ${u.redeemed||0} kupon</div>
+      </div>
+      <div class="coupon-pill ${u.coupons>=TARGET?'cp-ready':'cp-normal'}">🎟️ ${u.coupons}</div>
+    </div>`).join('');
+}
+
+/* ══ PENUKARAN — kelipatan 8 ══ */
+function tampilkanPenukaran(){
+  const list=document.getElementById('redeemList');
+  const noMsg=document.getElementById('noRedeem');
+  const eligible=users.filter(u=>u.coupons>=TARGET);
+  if(!eligible.length){list.innerHTML='';noMsg.style.display='block';return}
+  noMsg.style.display='none';
+
+  list.innerHTML=eligible.sort((a,b)=>b.coupons-a.coupons).map(u=>{
+    const maxC=Math.floor(u.coupons/TARGET);
+    const opts=Array.from({length:maxC},(_,i)=>{
+      const qty=(i+1)*TARGET, rp=((i+1)*6000).toLocaleString('id-ID');
+      return `<option value="${i+1}">${qty} kupon = Rp ${rp}</option>`;
+    }).join('');
+    const sid='sel_'+u.name.replace(/[^a-z0-9]/gi,'_');
+    return `
+    <div class="redeem-card">
+      <div class="redeem-top">
+        <img src="${avatarUrl(u.name,u.gender||'male')}" alt="" loading="lazy">
+        <div>
+          <div class="rname">${u.name}</div>
+          <div class="rmeta">Kupon aktif: <b style="color:var(--cyan)">${u.coupons}</b> &nbsp;|&nbsp; Bisa tukar: <b style="color:var(--green)">${maxC}× (maks ${maxC*TARGET} kupon)</b></div>
+        </div>
+      </div>
+      <div class="redeem-bottom">
+        <select id="${sid}">${opts}</select>
+        <button class="btn-confirm" onclick="konfirmasiTukar('${u.name}','${sid}')">✓ KONFIRMASI</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function konfirmasiTukar(nama, sid){
+  const user=users.find(u=>u.name===nama);
+  if(!user) return;
+  const sel=document.getElementById(sid);
+  if(!sel) return;
+  const cycles=parseInt(sel.value);
+  const qty=cycles*TARGET, rp=cycles*6000;
+  if(user.coupons<qty){alert(`⚠️ Kupon ${user.name} tidak cukup!`);return}
+  const ok=confirm(`Konfirmasi penukaran kupon:\n\n👤 ${nama}\n🎟️  ${qty} kupon dikurangi\n💸  Rp ${rp.toLocaleString('id-ID')}\n\nLanjutkan?`);
+  if(!ok) return;
+  user.coupons-=qty;
+  user.redeemed=(user.redeemed||0)+qty;
+  if(!user.history) user.history=[];
+  user.history.push({date:nowStr(),qty,rp});
+  logs.unshift({date:nowStr(),name:nama,qty,rp});
+  if(logs.length>300) logs=logs.slice(0,300);
+  saveLog(logs); saveUsers(users); refreshAll();
+  alert(`✅ Penukaran berhasil!\n\n${nama}: −${qty} kupon → Rp ${rp.toLocaleString('id-ID')}\nSisa kupon: ${user.coupons}`);
+}
+
+/* ══ LOG ══ */
+function tampilkanLog(){
+  const el=document.getElementById('globalLog');
+  if(!logs.length){el.innerHTML='<p style="color:var(--muted);font-size:12px;text-align:center;padding:16px 0">Belum ada riwayat penukaran.</p>';return}
+  el.innerHTML=logs.map(l=>`
+    <div class="log-item">
+      <div style="flex:1"><b>${l.name}</b> — ${l.qty} kupon → <b style="color:var(--green)">Rp ${l.rp.toLocaleString('id-ID')}</b></div>
+      <div class="log-time">${l.date}</div>
+      <span class="log-badge">✓ LUNAS</span>
+    </div>`).join('');
+}
+function hapusLog(){if(!confirm('Hapus semua log?'))return;logs=[];saveLog(logs);tampilkanLog()}
+</script>
+</body>
+</html>
